@@ -279,7 +279,8 @@ class GAN:
             if y[i] in self.numbers:
                 x_train.append(x[i])
                 y_train.append(y[i])
-                #break
+               #if(len(x_train)==2):
+                break
 
         x_train = np.array(x_train)
         y_train = np.array(y_train)
@@ -300,7 +301,10 @@ class GAN:
         # shuffle the data
         idx = np.random.permutation(len(x_train))
         x_train, y_train = x_train[idx], y_train[idx]
-        #print(len(x_train),len(y_train),(num_batches))
+        #x_train = x_train[: 1]
+        #y_train = y_train[: 1]
+        num_batches=1
+        print(len(x_train),len(y_train),(num_batches))
         return x_train, y_train, num_batches
 
 
@@ -363,10 +367,10 @@ class GAN:
         x_train, _, num_batches = self.preprocess_data(x, y)
 
         for epoch in range(self.epochs):
-            for i in range(num_batches):
+            for i in range(600):
                 # ------- PREPARE INPUT BATCHES & NOISE -------#
-                x_real = x_train[i * self.batch_size: (i + 1) * self.batch_size]
-                z = np.random.normal(0, 1, size=[self.batch_size, self.nx_g])  # 64x100 1x100 1 adet random noiz
+                x_real = x_train[0: 1]
+                z = np.random.normal(0, 1, size=[1, self.nx_g])  # 64x100 1x100 1 adet random noiz
 
                 # ------- FORWARD PROPAGATION -------#
                 z1_g, x_fake = self.forward_generator(z)
@@ -409,7 +413,7 @@ class GAN:
         return J_Ds, J_Gs
 
 
-numbers = [1]
+numbers = [4]
 
-model = GAN(numbers, learning_rate=1e-3, decay_rate=1e-4, epochs=100000)
+model = GAN(numbers, learning_rate=1e-3, decay_rate=1e-4, epochs=10000000)
 J_Ds, J_Gs = model.train(x_train, y_train)
