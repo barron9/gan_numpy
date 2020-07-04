@@ -329,16 +329,16 @@ class GAN:
         #images = np.reshape(images, (-1,self.batch_size, self.image_size, self.image_size))
 
         fig = plt.figure(figsize=(4, 4))
-
-        for i in range(16):
+        print(len(images),images.shape)
+        for i in range(64):
 
         #print(images[0])
             xcp=np.delete(images[i],784)
-            xcpa = np.reshape(xcp, ( self.image_size, self.image_size))
+            xcpa = np.reshape(xcp, (self.image_size, self.image_size))
 
             #images = np.reshape(images, (-1,self.batch_size, self.image_size, self.image_size))
 
-            plt.subplot(4, 4, i + 1)
+            plt.subplot(8, 8, i + 1)
             plt.imshow(xcpa * 127.5 + 127.5, cmap='gray')
             plt.axis('off')
 
@@ -392,12 +392,12 @@ class GAN:
 
                 # ------- PREPARE INPUT BATCHES & NOISE -------#
                 
-                x_real = x_train[i * self.batch_size: (i + 1) * self.batch_size]
-                #print(x_real.shape)
+                x_real_ = x_train[i * self.batch_size: (i + 1) * self.batch_size]
+                print(x_real_.shape)
                 y_class= _[i * self.batch_size: (i + 1) * self.batch_size]
 
                 z = np.random.normal(0, 1, size=[self.batch_size, 100])  # 64x100
-                x_real = np.append(x_real,np.array([y_class]).T, axis=1)
+                x_real = np.append(x_real_,np.array([y_class]).T, axis=1)
 
                 #print(x_real.shape)
                 z=np.append(z, np.array([y_class]).T, axis=1) #+1 for class name
@@ -446,8 +446,10 @@ class GAN:
             if epoch % self.display_epochs == 0:
                 print(
                     f"Epoch:{epoch:}|G loss:{J_G:.4f}|D loss:{J_D:.4f}|D(G(z))avg:{np.mean(a1_d_fake):.4f}|D(x)avg:{np.mean(a1_d_real):.4f}|LR:{self.lr:.6f}")
-                
+                self.sample_images(x_real, epoch, show=True)  # display sample images
+
                 self.sample_images(x_fake, epoch, show=True)  # display sample images
+                print(x_fake)
 
             else:
                 self.sample_images(x_fake, epoch, show=False)
@@ -461,7 +463,7 @@ class GAN:
         return J_Ds, J_Gs
 
 
-numbers = [5]
+numbers = [1]
 
 model = GAN(numbers, learning_rate=1e-3, decay_rate=1e-4, epochs=200)
 J_Ds, J_Gs = model.train(x_train, y_train)
