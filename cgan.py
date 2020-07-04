@@ -21,7 +21,7 @@ from pathlib import Path
 class GAN:
     def __init__(self, numbers, epochs=100, batch_size=64, input_layer_size_g=101,
                  hidden_layer_size_g=128, hidden_layer_size_d=128, learning_rate=1e-3,
-                 decay_rate=1e-4, image_size=28, display_epochs=199, create_gif=True):
+                 decay_rate=1e-4, image_size=28, display_epochs=10, create_gif=True):
         """
         Implementation of a vanilla GAN using Numpy.
         The Generator and Discriminator are described by multilayer perceptrons.
@@ -63,12 +63,12 @@ class GAN:
         self.b0_g = np.zeros((1, self.nh_g))  # 1x100
 
 
-        self.W1_g = np.random.randn(self.nh_g, self.image_size ** 2) * np.sqrt(2. / self.nh_g)  #784x784 giriş çıkış,, # 128x784
-        self.b1_g = np.zeros((1, self.image_size ** 2))  # 1x784
+        self.W1_g = np.random.randn(self.nh_g, 785) * np.sqrt(2. / self.nh_g)  #784x784 giriş çıkış,, # 128x784
+        self.b1_g = np.zeros((1, 785))  # 1x784
       
 
         # -------- Discriminator --------#
-        self.W0_d = np.random.randn(self.image_size ** 2, self.nh_d) * np.sqrt(2. / self.image_size ** 2)  # 784x128
+        self.W0_d = np.random.randn(785, self.nh_d) * np.sqrt(2. / 785)  # 784x128
         self.b0_d = np.zeros((1, self.nh_d))  # 1x128
 
 
@@ -145,7 +145,7 @@ class GAN:
         self.z1_g = np.dot(self.a0_g, self.W1_g) + self.b1_g #2nd layer
         self.a1_g = np.tanh(self.z1_g)  # check: range -1 to 1 as real images
         #print("otput")
-        #print(self.z1_g, len(self.a1_g[0]))
+        #print(self.z1_g.shape, self.a1_g[0].shape)
         return self.z1_g, self.a1_g
 
 
@@ -158,7 +158,7 @@ class GAN:
             z1_d - logit output from discriminator D(x) / D(G(z))
             a1_d - discriminator's output prediction for real/fake image
         """
-        #print(len(x))
+        #print((x.shape), self.W0_d.shape,self.b0_d.shape)
         self.z0_d = np.dot(x, self.W0_d) + self.b0_d #1x784 x w0_d(784x128) + 1x128
         self.a0_d = self.lrelu(self.z0_d)
         #print(self.z0_d, self.a0_d)
@@ -307,6 +307,7 @@ class GAN:
         # shuffle the data
         idx = np.random.permutation(len(x_train))
         x_train, y_train = x_train[idx], y_train[idx]
+        print(y_train)
         #x_train = x_train[: 1]
         #y_train = y_train[: 1]
         #num_batches=1
@@ -323,14 +324,22 @@ class GAN:
             epoch - current training iteration, used to identify images
             show - if True, the grid of images is displayed
         """
-        print(images.shape)
-        images = np.reshape(images, (self.batch_size, self.image_size, self.image_size))
+        #print("img spahe")
+        #print(images.shape)
+        #images = np.reshape(images, (-1,self.batch_size, self.image_size, self.image_size))
 
         fig = plt.figure(figsize=(4, 4))
 
         for i in range(16):
+
+        #print(images[0])
+            xcp=np.delete(images[i],784)
+            xcpa = np.reshape(xcp, ( self.image_size, self.image_size))
+
+            #images = np.reshape(images, (-1,self.batch_size, self.image_size, self.image_size))
+
             plt.subplot(4, 4, i + 1)
-            plt.imshow(images[i] * 127.5 + 127.5, cmap='gray')
+            plt.imshow(xcpa * 127.5 + 127.5, cmap='gray')
             plt.axis('off')
 
         # saves generated images in the GAN_sample_images folder
@@ -384,14 +393,22 @@ class GAN:
                 # ------- PREPARE INPUT BATCHES & NOISE -------#
                 
                 x_real = x_train[i * self.batch_size: (i + 1) * self.batch_size]
-                y_class= y_train[i * self.batch_size: (i + 1) * self.batch_size]
+                #print(x_real.shape)
+                y_class= _[i * self.batch_size: (i + 1) * self.batch_size]
 
                 z = np.random.normal(0, 1, size=[self.batch_size, 100])  # 64x100
+                x_real = np.append(x_real,np.array([y_class]).T, axis=1)
+
+                #print(x_real.shape)
                 z=np.append(z, np.array([y_class]).T, axis=1) #+1 for class name
+                #print(y_class[i])
                 #print(z,np.array([y_class]).T)
   
                 # ------- FORWARD PROPAGATION -------#
                 z1_g, x_fake = self.forward_generator(z,np.array([y_class]).T)
+                #self.sample_images(x_fake, epoch, show=True)
+                
+                #x_fakec = np.append(x_fake,np.array([y_class]).T, axis=1)
                 #print("x_fake")
                 #print(len(x_fake),x_fake)
                 #print("x_real")
@@ -399,6 +416,7 @@ class GAN:
 
                 #self.sample_images(x_real, epoch, show=True)
                 #self.sample_images(x_fake, epoch, show=True)
+                #x_fake = np.append(x_fake,np.array([y_class]).T, axis=1)
 
                 z1_d_real, a1_d_real = self.forward_discriminator(x_real,np.array([y_class]).T)
                 z1_d_fake, a1_d_fake = self.forward_discriminator(x_fake,np.array([y_class]).T)
@@ -421,11 +439,16 @@ class GAN:
                 self.backward_discriminator(x_real,np.array([y_class]).T, z1_d_real, a1_d_real,
                                             x_fake, z1_d_fake, a1_d_fake)
                 self.backward_generator(z, x_fake, z1_d_fake, a1_d_fake)
+                #print("xfakeshape ")
+                #print(x_fake.shape)
+                #x_fake=np.delete(x_fake, 785)
 
             if epoch % self.display_epochs == 0:
                 print(
                     f"Epoch:{epoch:}|G loss:{J_G:.4f}|D loss:{J_D:.4f}|D(G(z))avg:{np.mean(a1_d_fake):.4f}|D(x)avg:{np.mean(a1_d_real):.4f}|LR:{self.lr:.6f}")
+                
                 self.sample_images(x_fake, epoch, show=True)  # display sample images
+
             else:
                 self.sample_images(x_fake, epoch, show=False)
 
@@ -438,7 +461,7 @@ class GAN:
         return J_Ds, J_Gs
 
 
-numbers = [1,2]
+numbers = [5]
 
 model = GAN(numbers, learning_rate=1e-3, decay_rate=1e-4, epochs=200)
 J_Ds, J_Gs = model.train(x_train, y_train)
@@ -451,11 +474,12 @@ y_class = np.zeros(100)
 z1_g, x_fake = model.forward_generator(z,y_class)
 print(x_fake.shape)
 #model.sample_images(x_fake, 100, show=True)
-images = np.reshape(x_fake, (28, 28))
+xcp=np.delete(x_fake,784)
+xcpa = np.reshape(xcp, ( 28, 28))
 
 fig = plt.figure(figsize=(4, 4))
 
 plt.subplot(4, 4, 1)
-plt.imshow(images * 127.5 + 127.5, cmap='gray')
+plt.imshow(xcpa * 127.5 + 127.5, cmap='gray')
 plt.axis('off')
 plt.show()
